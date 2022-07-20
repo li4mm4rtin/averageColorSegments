@@ -78,8 +78,6 @@ if rowHeight[0] == 0:
 if colWidth[0] == 0:
     colWidth = colWidth[1:]
 
-print(colWidth, rowHeight)
-
 colStart = 0
 
 averageColor = np.full((len(rowHeight), len(colWidth), 3), -1)
@@ -95,9 +93,11 @@ for i in range(len(colWidth)):
 cv2.imwrite(os.path.join(os.path.dirname(imageFile), os.path.basename(imageFile)[:-5]+'_averagePixel.png'),
             averageColor)
 # np.savetxt(os.path.join(os.path.dirname(imageFile), os.path.basename(imageFile)[:-5]+"_averageBlueData.csv"),
-           # averageColor[:, :, 0], delimiter=",")
+#            averageColor[:, :, 0], delimiter=",")
 # np.savetxt(os.path.join(os.path.dirname(imageFile), os.path.basename(imageFile)[:-5]+"_averageGreenData.csv"),
-           # averageColor[:, :, 1], delimiter=",")
+#            averageColor[:, :, 1], delimiter=",")
 # np.savetxt(os.path.join(os.path.dirname(imageFile), os.path.basename(imageFile)[:-5]+"_averageRedData.csv"),
-           # averageColor[:, :, 2], delimiter=",")
+#            averageColor[:, :, 2], delimiter=",")
+np.savetxt(os.path.join(os.path.dirname(imageFile), os.path.basename(imageFile)[:-5]+"_averageRedRatio.csv"),
+           averageColor[:, :, 0]/(averageColor[:, :, 1]+averageColor[:, :, 2]), delimiter=",")
 
