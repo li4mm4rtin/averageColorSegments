@@ -39,21 +39,25 @@ rowHeight = np.zeros(0)
 
 run = True
 
-points = (0, 0)
+points = (-1, -1)
 cache = copy.deepcopy(image)
 
 while run:
     cv2.setMouseCallback("Loaded Image", getMousePoints)
     cv2.imshow("Loaded Image", cache)
 
-    if points != (0, 0):
+    if points != (-1, -1):
         cv2.line(cache, (points[0], 0), (points[0], image.shape[0]), (255, 0, 0), 1)
         cv2.line(cache, (0, points[1]), (image.shape[1], points[1]), (255, 0, 0), 1)
 
     if cv2.waitKey(33) == ord(' '):
         break
 
-    cv2.imshow("Loaded Image", image)
+    if cv2.waitKey(33) == ord('r'):
+        cv2.destroyAllWindows()
+        cache = copy.deepcopy(image)
+        cv2.imshow("Loaded Image", cache)
+        points = (-1, -1)
 
 for i in range(image.shape[1]):
     if np.all(np.isin(image[points[1], i, :], [0, 0, 0])):
@@ -98,6 +102,6 @@ cv2.imwrite(os.path.join(os.path.dirname(imageFile), os.path.basename(imageFile)
 #            averageColor[:, :, 1], delimiter=",")
 # np.savetxt(os.path.join(os.path.dirname(imageFile), os.path.basename(imageFile)[:-5]+"_averageRedData.csv"),
 #            averageColor[:, :, 2], delimiter=",")
-np.savetxt(os.path.join(os.path.dirname(imageFile), os.path.basename(imageFile)[:-5]+"_averageRedRatio.csv"),
+np.savetxt(os.path.join(os.path.dirname(imageFile), os.path.basename(imageFile)[:-5]+"_averageBlueRatio.csv"),
            averageColor[:, :, 0]/(averageColor[:, :, 1]+averageColor[:, :, 2]), delimiter=",")
 
