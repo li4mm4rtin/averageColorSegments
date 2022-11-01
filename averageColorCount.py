@@ -1,98 +1,83 @@
-import cv2
 import numpy as np
+from PIL import Image
 import sys
+import cv2
 from tkinter import filedialog
 import os
-import copy
 
+Image.MAX_IMAGE_PIXELS = 224834385
 np.set_printoptions(threshold=sys.maxsize)
 
 
-def findRegionAverage(img, cStart, colWidthValue, rStart, rowHeightValue):
+def findRegionAverage(img, cStart, colWidthValue, rStart, rowHeightValue, colCount, rowCount):
     color = np.full(3, 0)
     count = 0
     for xPosition in range(int(colWidthValue)):
         for yPosition in range(int(rowHeightValue)):
-            color += img[int(rStart + yPosition), int(cStart + xPosition), :]
+            pixel = img[int(rStart + yPosition), int(cStart + xPosition), :]
+            # if not :
+            color += pixel
             count += 1
-
     if count == 0:
         count = 1
 
-    return color * 1/count
+    print("Average Calculated For Cell (%2d, %2d)"% (rowCount+1, colCount+1))
 
-
-def getMousePoints(event, x, y, flags, params):
-    global points
-
-    if event == cv2.EVENT_LBUTTONDOWN:
-        points = x, y
+    if np.all(np.isin(color, [0, 0, 0])):
+        return [0, 1, 1]
+    else:
+        return color * 1 / count
 
 
 imageFile = filedialog.askopenfilename(title='Select Image File')
-image = cv2.imread(imageFile)
 
-width = 0
-colWidth = np.zeros(0)
-height = 0
-rowHeight = np.zeros(0)
+print("Loaded File: " + imageFile)
 
-run = True
+pimRGB = Image.open(imageFile)
+pimgrey = pimRGB.convert('L')
+nimRGB = np.array(pimRGB)
+nimgrey = np.array(pimgrey)
 
-points = (-1, -1)
-cache = copy.deepcopy(image)
+rowmeans = np.mean(nimgrey, axis=1)
+rowthresh = np.where(rowmeans < 1, 255, 0)
+diffs = rowthresh[:-1] - rowthresh[1:]
+rowStarts, rowEnds = [0], []
+for i, v in enumerate(diffs):
+    if v > 0:
+        rowStarts.append(i)
+    if v < 0:
+        rowEnds.append(i)
 
-while run:
-    cv2.setMouseCallback("Loaded Image", getMousePoints)
-    cv2.imshow("Loaded Image", cache)
+rowEnds.append(nimgrey.shape[0])
 
-    if points != (-1, -1):
-        cv2.line(cache, (points[0], 0), (points[0], image.shape[0]), (255, 0, 0), 1)
-        cv2.line(cache, (0, points[1]), (image.shape[1], points[1]), (255, 0, 0), 1)
+colmeans = np.mean(nimgrey, axis=0)
+colthresh = np.where(colmeans < 1, 255, 0)
+diffs = colthresh[:-1] - colthresh[1:]
+if not colmeans[0] == 0:
+    colStarts, colEnds = [0], []
+else:
+    colStarts, colEnds = [], []
+for i, v in enumerate(diffs):
+    if v > 0:
+        colStarts.append(i)
+    if v < 0:
+        colEnds.append(i)
 
-    if cv2.waitKey(33) == ord(' '):
-        break
+if len(colStarts) > len(colEnds):
+    colEnds.append(nimgrey.shape[1])
 
-    if cv2.waitKey(33) == ord('r'):
-        cv2.destroyAllWindows()
-        cache = copy.deepcopy(image)
-        cv2.imshow("Loaded Image", cache)
-        points = (-1, -1)
+colWidth = np.array(colEnds) - np.array(colStarts)
+rowHeight = np.array(rowEnds) - np.array(rowStarts)
 
-for i in range(image.shape[1]):
-    if np.all(np.isin(image[points[1], i, :], [0, 0, 0])):
-        colWidth = np.append(colWidth, width)
-        width = -1
-    elif i == image.shape[1] - 1:
-        colWidth = np.append(colWidth, width)
-
-    width += 1
-
-for i in range(image.shape[0]):
-    if np.all(np.isin(image[i, points[0], :], [0, 0, 0])):
-        rowHeight = np.append(rowHeight, height)
-        height = -1
-    elif i == image.shape[0] - 1:
-        rowHeight = np.append(rowHeight, height)
-
-    height += 1
-
-if rowHeight[0] == 0:
-    rowHeight = rowHeight[1:]
-if colWidth[0] == 0:
-    colWidth = colWidth[1:]
-
-colStart = 0
+print("Identified Grid of Shape (%2d, %2d)" % (len(rowHeight), len(colWidth)))
 
 averageColor = np.full((len(rowHeight), len(colWidth), 3), -1)
 
-for i in range(len(colWidth)):
-    rowStart = 0
-    for j in range(len(rowHeight)):
-        averageColor[j, i, :] = findRegionAverage(image, colStart, colWidth[i], rowStart, rowHeight[j])
-        rowStart = rowStart + rowHeight[j] + 1
-    colStart = colStart + colWidth[i] + 1
+image_tt = cv2.imread(imageFile)
 
+for i in range(len(colWidth)):
+    for j in range(len(rowHeight)):
+        averageColor[j, i, :] = findRegionAverage(image_tt, colStarts[i], colWidth[i], rowStarts[j], rowHeight[j], i, j)
 
 cv2.imwrite(os.path.join(os.path.dirname(imageFile), os.path.basename(imageFile)[:-5]+'_averagePixel.png'),
             averageColor)
@@ -104,4 +89,3 @@ cv2.imwrite(os.path.join(os.path.dirname(imageFile), os.path.basename(imageFile)
 #            averageColor[:, :, 2], delimiter=",")
 np.savetxt(os.path.join(os.path.dirname(imageFile), os.path.basename(imageFile)[:-5]+"_averageBlueRatio.csv"),
            averageColor[:, :, 0]/(averageColor[:, :, 1]+averageColor[:, :, 2]), delimiter=",")
-
