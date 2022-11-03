@@ -11,15 +11,17 @@ np.set_printoptions(threshold=sys.maxsize)
 # img: array of color data, cStart: int defining the start of the cell in the x-direction in the array, colWidthValue:
 # int defining the width of the cell, rStart: int defining the start of the cell in the y-direction, rowHeightValue:
 # int defining the height of the cell, colCount: int defining col, rowCount: int defining row
-def findRegionAverage(img: np.ndarray, cStart: int, colWidthValue: int, rStart: int, rowHeightValue: int,
-                      colCount: int, rowCount: int):
+def findRegionAverage(img: np.ndarray, img_gray: np.ndarray, cStart: int, colWidthValue: int, rStart: int,
+                      rowHeightValue: int, colCount: int, rowCount: int):
     color = np.full(3, 0)
     count = 0
+
     for xPosition in range(int(colWidthValue)):
         for yPosition in range(int(rowHeightValue)):
             pixel = img[int(rStart + yPosition), int(cStart + xPosition), :]
-            color += pixel
-            count += 1
+            if not img_gray[int(rStart + yPosition), int(cStart + xPosition)] == 0:
+                color += pixel
+                count += 1
     if count == 0:
         count = 1
 
@@ -40,7 +42,7 @@ image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
 # Calculate the mean of the rows. Identifies the grid lines in the x-direction
 rowmeans = np.mean(image_gray, axis=1)
-rowthresh = np.where(rowmeans < 1, 255, 0)
+rowthresh = np.where(rowmeans == 0, 255, 0)
 diffs = rowthresh[:-1] - rowthresh[1:]
 rowStarts, rowEnds = [0], []
 
@@ -54,7 +56,7 @@ rowEnds.append(image_gray.shape[0])
 
 # Calculate the mean of the cols. Identifies the grid lines in the y-direction
 colmeans = np.mean(image_gray, axis=0)
-colthresh = np.where(colmeans < 1, 255, 0)
+colthresh = np.where(colmeans == 0, 255, 0)
 diffs = colthresh[:-1] - colthresh[1:]
 
 if not colmeans[0] == 0:
@@ -79,7 +81,7 @@ averageColor = np.full((len(rowHeight), len(colWidth), 3), -1)
 
 for i in range(len(colWidth)):
     for j in range(len(rowHeight)):
-        averageColor[j, i, :] = findRegionAverage(image, colStarts[i], colWidth[i], rowStarts[j], rowHeight[j], i, j)
+        averageColor[j, i, :] = findRegionAverage(image, image_gray, colStarts[i], colWidth[i], rowStarts[j], rowHeight[j], i, j)
 
 cv2.imwrite(os.path.join(os.path.dirname(imageFile), os.path.basename(imageFile)[:-5] + '_averagePixel.png'),
             averageColor)
